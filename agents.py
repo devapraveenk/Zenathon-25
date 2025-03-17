@@ -10,6 +10,7 @@ from langchain_community.tools.sql_database.tool import QuerySQLDatabaseTool
 from langgraph.graph import StateGraph,START,END
 from langgraph.graph.message import add_messages
 import pandas as pd
+from plotly.graph_objs import Figure
 import sqlite3
 import sys
 import io
@@ -22,7 +23,8 @@ load_dotenv()
 os.environ['GROQ_API_KEY'] = os.getenv('GROQ_API_KEY')
 os.environ['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
 
-
+class QueryCorrecter(BaseModel):
+    query: str
 class Preprocess_Input(BaseModel):
     sql_task:str =  Field(None,description='sql task in the user asked input')
     vis_task:Optional[str] = Field(None,description='visualization task in the user input')
@@ -41,6 +43,7 @@ class SQL_State(TypedDict):
     vis_task: str
     query: str
     code: str
+    figure: Figure
     sql_error: str
     py_error: str
     sq_result: str
@@ -75,8 +78,9 @@ class Agent:
 
         try:
             with redirect_stdout(output), redirect_stderr(error):
-                exec(code)
-            return output.getvalue(), error.getvalue(), None
+                globals_dict = {}
+                exec(code, globals_dict)
+            return output.getvalue(), error.getvalue(), None, globals_dict.get('fig')
         except ImportError as e:
             package_name = str(e).split("'")[1]
             pip_package_name = PACKAGE_MAPPING.get(package_name, package_name)
@@ -86,7 +90,7 @@ class Agent:
             except subprocess.CalledProcessError:
                 return output.getvalue(), error.getvalue(), f"Failed to install package: {pip_package_name}"
         except Exception:
-            return output.getvalue(), error.getvalue(), traceback.format_exc()
+            return output.getvalue(), error.getvalue(), traceback.format_exc(), globals_dict.get('fig')
 
     def preprocess_input(self, state: SQL_State):
         preprocess_parser = PydanticOutputParser(pydantic_object=Preprocess_Input)
@@ -142,7 +146,9 @@ class Agent:
     def execute_query(self, state: SQL_State):
         query_executor = QuerySQLDatabaseTool(db=self.db)
         query = state['query']
-        df = pd.read_sql_query(query, self.conn)
+        st_llm = self.llm.with_structured_output(QueryCorrecter)
+        query_pd = st_llm.invoke(f'Correct the query to be run in pd.read_sql_query() method QUERY:{query}').query
+        df = pd.read_sql_query(query_pd, self.conn)
         result = query_executor.invoke(query)
         df.to_csv('data.csv')
         error = None
@@ -170,10 +176,10 @@ class Agent:
             NOTE:
             IMPORTANT : Try to Generate the code error freely
             It is Encourages to use PLOTLY instead MATPLOTLIB
-            Always save the plots in the PATH: 'images/image.png'
-            DATA STORED IN PATH :'data.csv'
-
-            To Save the Image 'USE THIS CODE' :"plotly.offline.plot(fig, filename='images/image.html')"
+            Always define the function(def plot()) with returns of fig
+            SHOULD CALL THE FUNCTION BY
+            fig = plot()
+            AVOID fig.show()
             INPUT : {input}
             SAMPLE_DATA : {data}
               """
@@ -187,8 +193,8 @@ class Agent:
         return {'code': code}
 
     def execute_code(self, state: SQL_State):
-        out, err, trace = self.execute_python_code(state['code'])
-        return {'py_error': trace}
+        out, err, trace, fig = self.execute_python_code(state['code'])
+        return {'py_error': trace,'figure':fig}
 
     def build_graph(self):
         Graph = StateGraph(SQL_State)
