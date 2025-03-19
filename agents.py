@@ -9,6 +9,7 @@ from langchain_community.tools import Tool
 from langchain_community.tools.sql_database.tool import QuerySQLDatabaseTool
 from langgraph.graph import StateGraph,START,END
 from langgraph.graph.message import add_messages
+from langgraph.checkpoint.memory import MemorySaver
 import pandas as pd
 from plotly.graph_objs import Figure
 import sqlite3
@@ -232,8 +233,9 @@ class Agent:
             'execute_code',
             lambda SQL_State: END if SQL_State.get('py_error', None) is None else 'generate_code'
         )
-
-        graph = Graph.compile()
+        checkpointer = MemorySaver()
+        # graph.compile(checkpointer=checkpointer)
+        graph = Graph.compile(checkpointer=checkpointer)
 
         return graph
     
