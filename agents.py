@@ -233,8 +233,8 @@ class Agent:
             'execute_code',
             lambda SQL_State: END if SQL_State.get('py_error', None) is None else 'generate_code'
         )
+
         checkpointer = MemorySaver()
-        # graph.compile(checkpointer=checkpointer)
         graph = Graph.compile(checkpointer=checkpointer)
 
         return graph
