@@ -281,23 +281,12 @@ def main():
     user_question = "Show me the total sales by region and visualize it as a bar chart."
 
     # Initialize the state with the user's question
-    initial_state = SQL_State(
-        question=[user_question],  # Wrap the question in a list
-        sql_task=None,
-        vis_task=None,
-        query=None,
-        code=None,
-        sql_error=None,
-        py_error=None,
-        sq_result=None,
-        answer=None
-    )
-
+    config = {"configurable": {"thread_id": "1"}}
     # Build the graph
     graph = agent.build_graph()
 
     # Run the graph with the initial state
-    final_state = graph.invoke({'question':'How many Invoices were there in 2009 and 2011? What are the respective total sales for each of those years?'})
+    final_state = graph.invoke({'question':'How many Invoices were there in 2009 and 2011? What are the respective total sales for each of those years?'},config=config)
 
     # Print the final state to see the results
     print("Final State:")
