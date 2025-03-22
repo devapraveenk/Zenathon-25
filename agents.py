@@ -172,9 +172,15 @@ class Agent:
     def generate_code(self, state: SQL_State):
         df = pd.read_sql_query(state['query'], self.conn)
         df.to_csv('data.csv')
+        df.to_csv('data.csv')
+        buffer = io.StringIO()
+        df.info(buf=buffer)
+        df_info_str = buffer.getvalue()
         visualize_template = """ 
             ROLE : To Generate the Python Code For the visualization query asked to DO!
             NOTE:
+            YOU SHOULD ONLY USE the DATA in 'data.csv' , dont create your own data
+            {info_data}
             IMPORTANT : Try to Generate the code error freely
             It is Encourages to use PLOTLY instead MATPLOTLIB
             Always define the function(def plot()) with returns of fig
