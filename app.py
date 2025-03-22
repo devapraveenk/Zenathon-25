@@ -73,17 +73,19 @@ st.header("Chatbot")
 # Display chat messages
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
-        ans_state = graph.invoke({'question':message['prompt']})
-        st.write(ans_state['answer'])
-        # st.image(image_path)
-        if ans_state.get("query"):
-            with st.expander("View SQL Code"):
-                st.code(ans_state["query"])
-        if ans_state.get("code"):
-            with st.expander("View Python Code"):
-                st.code(ans_state["code"])
-        if ans_state.get('figure'):
-            st.plotly_chart(ans_state.get('figure'))
+        if message["role"] == "user":
+            st.write(message["prompt"])  # Display user's prompt
+        elif message["role"] == "assistant":
+            ans_state = graph.invoke({'question': message['prompt']})
+            st.write(ans_state['answer'])  # Display assistant's answer
+            if ans_state.get("query"):
+                with st.expander("View SQL Code"):
+                    st.code(ans_state["query"])  # Display SQL code if available
+            if ans_state.get("code"):
+                with st.expander("View Python Code"):
+                    st.code(ans_state["code"])  # Display Python code if available
+            if ans_state.get('figure'):
+                st.plotly_chart(ans_state.get('figure'))  # Display figure if available
 
 # User input
 if prompt := st.chat_input("Ask a question about the data"):
