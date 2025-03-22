@@ -147,8 +147,29 @@ class Agent:
     def execute_query(self, state: SQL_State):
         query_executor = QuerySQLDatabaseTool(db=self.db)
         query = state['query']
-        st_llm = self.llm.with_structured_output(QueryCorrecter)
-        query_pd = st_llm.invoke(f'Correct the query to be run in pd.read_sql_query() method QUERY:{query}').query
+        # st_llm = self.llm.with_structured_output(QueryCorrecter)
+        pd_llm = self.llm.with_structured_output(QueryCorrecter)
+        pd_prompt_template = """ 
+        Given SQL_QUERY for the database 
+        INFO:
+        dialect : {dialect}
+        top_k : {top_k}
+        table_info : {table_info}
+        query: {input}
+        i want to make the query ,suits for running in pandas read_sql_query
+        kindly correct the sql_query so it may be run in pandas database engine
+        """
+        pd_prompt = PromptTemplate.from_template(pd_prompt_template)
+        prompt = pd_prompt.invoke(
+            {
+                "dialect": self.db.dialect,
+                "top_k": 10,
+                "table_info": self.db.get_table_info(),
+                "input": state['query'],
+                # 'error': state.get('sql_error', None)
+            }
+        )
+        query_pd = pd_llm.invoke(prompt).query
         df = pd.read_sql_query(query_pd, self.conn)
         result = query_executor.invoke(query)
         df.to_csv('data.csv')
