@@ -71,50 +71,18 @@ with st.sidebar:
 st.header("Chatbot")
 
 # Display chat messages
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        if message["role"] == "user":
-            st.write(message["prompt"])  # Display user's prompt
-        elif message["role"] == "assistant":
-            ans_state = graph.invoke({'question': message['prompt']})
-            st.write(ans_state['answer'])  # Display assistant's answer
-            if ans_state.get("query"):
-                with st.expander("View SQL Code"):
-                    st.code(ans_state["query"])  # Display SQL code if available
-            if ans_state.get("code"):
-                with st.expander("View Python Code"):
-                    st.code(ans_state["code"])  # Display Python code if available
-            if ans_state.get('figure'):
-                st.plotly_chart(ans_state.get('figure'))  # Display figure if available
+if prompt := st.chat_input("Ask your question ?"):
+    with st.chat_message("user", avatar = '👨🏻'):
+        st.markdown(prompt)
+    st.session_state.messages.append({"role": "user", 
+                                    "avatar" :'👨🏻',
+                                    "content": prompt})
+    result = graph.invoke({'question':prompt})
 
-# User input
-if prompt := st.chat_input("Ask a question about the data"):
-    if not st.session_state.db_path:
-        st.error("Please upload a CSV file or connect to a SQLite database first.")
-    else:
-        # Add user message to chat history
-        st.session_state.messages.append({"role": "user", "prompt": prompt})
-
-        # Generate SQL and Python code
-        # sql_code, python_code = generate_code(prompt)
-
-        # Execute SQL query
-        # result = execute_query(st.session_state.db_path, sql_code)
-
-        # Generate answer
-        # if isinstance(result, pd.DataFrame):
-        #     answer = f"Here is the result:\n\n{result}"
-        # else:
-        #     answer = f"Error: {result}"
-
-        # Add assistant message to chat history
-        st.session_state.messages.append({
-            "role": "assistant",
-            "prompt": prompt
-            # "content": answer,
-            # "sql_code": sql_code,
-            # "python_code": python_code
-        })
-
-        # Rerun to update the chat interface
-        st.rerun()
+    with st.chat_message("assistant", avatar='🤖'):
+        st.markdown(result['answer'])
+    if result['figure']:
+        st.plotly_chart(result['figure'])
+    st.session_state.messages.append({"role": "assistant", 
+                                        "avatar" :'🤖',
+                                        "content": result['answer']})
