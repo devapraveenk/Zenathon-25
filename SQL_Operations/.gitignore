@@ -1,0 +1,30 @@
+CookBook/
+# Ignore virtual environment directory
+analyst/
+
+# Ignore streamlit secrets
+.streamlit/secrets.toml
+
+# Ignore .env file
+.env
+
+# Ignore miscellaneous folder
+miscellaneous/
+tmp/
+FAISS_IndexMusuemkkr/
+data/
+# Ignore typical OS-specific files
+.DS_Store
+Thumbs.db
+antarcrm/chatbot_service.log
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+trained_agents_data.pkl
+
+/Users/a2024/Desktop/Antar_CRM/antarcrm/chatbot_service.log
